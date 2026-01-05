@@ -1,0 +1,97 @@
+name: Frontend Js CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # 테스트
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [19.x, 20.x, 22.x]
+    
+    # 순서
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{matrix.node-version}}
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend-express
+      
+      - name: Run tests
+        run: npm test
+        working-directory: ./frontend-express
+
+  # 빌드, 이미지 푸시
+  build-and-push-image:
+    needs: test
+    runs-on: [fe]
+    if: github.ref == 'refs/heads/main'
+
+    # 순서
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login to Private Registry
+        run: |
+          echo "${{secrets.REGISTRY_PASSWORD}}" | docker login ${{secrets.REGISTRY_URL}} -u ${{secrets.REGISTRY_USERNAME}} --password-stdin
+
+      - name: Build Docker Image
+        working-directory: ./frontend-express
+        run: |
+          docker build -t ktb-express:latest .
+        
+      - name: Tag Image
+        run: |
+          docker tag ktb-express:latest ${{secrets.REGISTRY_URL}}/ktb-express:latest
+      
+      - name: Push Image
+        run: |
+          docker push ${{secrets.REGISTRY_URL}}/ktb-express:latest
+
+  # 배포     
+  deploy:
+    needs: build-and-push-image
+    runs-on: [fe]
+
+    # 순서
+    steps:
+      - name: Checkout Repository for SCP
+        uses: actions/checkout@v6
+
+      - name: Set up SSH Key on Runner
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{secrets.SSH_PRIVATE_KEY}}
+      
+      - name: Directory Permissions
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{secrets.SSH_HOST_CONNECT}} "
+            sudo chown -R ubuntu:ubuntu /home/ubuntu/fe/
+          "
+
+      - name: Send docker-compose.yml to Private EC2
+        run: |
+          scp -o StrictHostKeyChecking=no ./frontend-express/deploy/docker-compose.yml ${{secrets.SSH_HOST_CONNECT}}:/home/ubuntu/fe/docker-compose.yml
+
+      - name: Deploy to Private EC2 via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{secrets.SSH_HOST_CONNECT}} "
+
+            echo \"${{secrets.REGISTRY_PASSWORD}}\" | docker login ${{secrets.REGISTRY_PRIVATE_URL}} -u ${{secrets.REGISTRY_USERNAME}} --password-stdin
+        
+            cd /home/ubuntu/fe &&
+
+            docker compose pull
+
+            docker compose up -d
+          "
