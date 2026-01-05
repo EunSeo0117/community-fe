@@ -2,46 +2,105 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>아무 말 대잔치</title>
-
-  <link rel="stylesheet" href="../css/common.css" />
-  <link rel="stylesheet" href="../css/index.css" />
+  <title>Satellite</title>
+  <link rel="stylesheet" href="./css/landing.css" />
 </head>
 <body>
-  <header class="header">
-    <h1>아무 말 대잔치</h1>
-
-    <div class="profile-area">
-      <input type="checkbox" id="profile-dd-toggle" class="dd-toggle" hidden>
-      <label for="profile-dd-toggle" class="profile-btn">
-        <img alt="프로필" class="profile-img" />
-      </label>
-
-      <div class="profile-dropdown">
-        <a href="./mypage.html">회원정보수정</a>
-        <a href="./passwordChange.html">비밀번호수정</a>
-        <a href="./logout.html">로그아웃</a>
+  <div class="starfield">
+    <div class="solar-system">
+      <div class="sun"></div>
+      <div class="orbit orbit--pluto">
+        <div class="planet"><span class="planet-label">Pluto</span></div>
+      </div>
+      <div class="orbit orbit--neptune">
+        <div class="planet"><span class="planet-label">Neptune</span></div>
+      </div>
+      <div class="orbit orbit--uranus">
+        <div class="planet"><span class="planet-label">Uranus</span></div>
+      </div>
+      <div class="orbit orbit--saturn">
+        <div class="planet"><span class="planet-label">Saturn</span></div>
+      </div>
+      <div class="orbit orbit--jupiter">
+        <div class="planet"><span class="planet-label">Jupiter</span></div>
+      </div>
+      <div class="orbit orbit--mars">
+        <div class="planet"><span class="planet-label">Mars</span></div>
+      </div>
+      <div class="orbit orbit--earth">
+        <div class="planet"><span class="planet-label">Earth</span></div>
+      </div>
+      <div class="orbit orbit--venus">
+        <div class="planet"><span class="planet-label">Venus</span></div>
+      </div>
+      <div class="orbit orbit--mercury">
+        <div class="planet"><span class="planet-label">Mercury</span></div>
       </div>
     </div>
-  </header>
 
-  <main class="main">
-    <section class="welcome-section">
-      <h2>환영합니다 👋</h2>
-      <p>오늘도 자유롭게 아무 말 대잔치를 즐겨보세요!</p>
+    <div class="info-panel">
+      <p class="info-label">자유로운 생각의 궤도</p>
+      <h1 class="info-title">Satellite</h1>
+      <p class="info-desc">
+        행성을 클릭하면 게시판으로 이동해요.<br />
+        마음껏 떠올리고, 흔적을 남겨보세요.
+      </p>
+      <button type="button" class="enter-btn">입장하기</button>
+    </div>
+  </div>
 
-      <div class="button-group">
-        <button class="go-board-btn">게시판 바로가기</button>
-        <button class="go-profile-btn">내 프로필</button>
-      </div>
-    </section>
-  </main>
+  <script src="./js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const API_BASE =
+        window.API_BASE_URL ||
+        (window.auth && window.auth.API_BASE_URL) ||
+        `${window.location.origin}/api`;
 
-  <footer class="footer">
-    <p>© 2025 아무 말 대잔치. All rights reserved.</p>
-  </footer>
+      const enter = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/users`, {
+            method: "GET",
+            credentials: "include",
+          });
 
-  <script src="../js/profile.js"></script>
-  <script src="../js/index.js"></script>
+          if (!res.ok) {
+            window.location.href = "./login";
+            return;
+          }
+
+          window.location.href = "/postList";
+        } catch (_) {
+          window.location.href = "./login";
+        }
+      };
+
+      document.querySelectorAll(".planet").forEach((planet) => {
+        const orbit = planet.closest(".orbit");
+
+        planet.addEventListener("mouseenter", () => {
+          if (orbit) {
+            orbit.classList.add("orbit--paused");
+          }
+        });
+
+        planet.addEventListener("mouseleave", () => {
+          if (orbit) {
+            orbit.classList.remove("orbit--paused");
+          }
+        });
+
+        planet.addEventListener("click", (e) => {
+          e.preventDefault();
+          enter();
+        });
+      });
+
+      const enterBtn = document.querySelector(".enter-btn");
+      if (enterBtn) {
+        enterBtn.addEventListener("click", enter);
+      }
+    });
+  </script>
 </body>
 </html>

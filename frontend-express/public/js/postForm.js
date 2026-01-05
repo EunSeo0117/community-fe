@@ -7,11 +7,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const helperText = document.querySelector(".helper-text");
     const pageTitle = document.querySelector(".post-title");
     const submitBtn = document.querySelector(".submit-btn");
+    const titleCounter = document.querySelector('.js-title-counter');
+    const contentCounter = document.querySelector('.js-content-counter');
 
     const urlParams = new URLSearchParams(window.location.search);
     const postId = urlParams.get("postId");
     const mode = urlParams.get("mode");
-    const baseUrl = "http://localhost:8080";
+    const baseUrl = window.API_BASE_URL || `${window.location.origin}/api`;
 
     const titleEl = document.querySelector(".header h1");
     if (titleEl) {
@@ -42,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             postTitle.value = post.title || "";
             postContent.value = post.content || "";
+            updateCounters();
 
             if (post.postImages && post.postImages.length > 0) {
                 const fileName = post.postImages[0].imageUrl.split("/").pop();
@@ -58,6 +61,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     postImage.addEventListener("change", (e) => {
         const file = e.target.files[0];
         fileNameText.textContent = file ? `선택된 파일: ${file.name}` : "파일 없음";
+    });
+
+    function updateCounters() {
+        if (titleCounter) {
+            titleCounter.textContent = `${postTitle.value.length} / 26자`;
+        }
+        if (contentCounter) {
+            contentCounter.textContent = `${postContent.value.length} / 5000자`;
+        }
+    }
+
+    function limitInputLength(element, maxLength) {
+        if (element.value.length > maxLength) {
+            element.value = element.value.slice(0, maxLength);
+        }
+    }
+
+    postTitle.addEventListener("input", () => {
+        limitInputLength(postTitle, 26);
+        updateCounters();
+    });
+
+    postContent.addEventListener("input", () => {
+        limitInputLength(postContent, 20000);
+        updateCounters();
     });
 
     postForm.addEventListener("submit", async (event) => {
@@ -102,7 +130,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             const result = await response.json();
-            alert(mode === "edit" ? "게시글이 수정되었습니다." : "게시글이 등록되었습니다.");
             window.location.href = `./postDetail?postId=${mode === "edit" ? postId : result}`;
         } catch (e) {
             console.error("게시글 저장 오류:", e);
@@ -110,4 +137,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             helperText.style.color = "red";
         }
     });
+
+    updateCounters();
 });
